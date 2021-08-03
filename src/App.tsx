@@ -1,24 +1,33 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState } from 'react';
+import Editor from './Editor';
+import Running from './Running';
+import { parse } from './language/parser'
 import './App.css';
+import { Ast } from './language/ast';
 
 function App() {
+  type Data =
+    | { mode: "editing", code: string }
+    | { mode: "running", code: string, ast: Ast };
+  const [data, setData] = useState<Data>({ mode: "editing", code: "" });
+
+  function onRun() {
+    setData({
+      mode: "running",
+      code: data.code,
+      ast: parse(data.code)
+    })
+  }
+  let content;
+  if (data.mode == "editing") {
+    content = <Editor code={data.code} setCode={(code) => setData({ ...data, code })} onRun={onRun} />
+  } else if (data.mode == "running") {
+    content = <Running code={data.code} ast={data.ast} onClose={() => setData({ mode: "editing", code: data.code })} />
+  }
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {content}
     </div>
   );
 }

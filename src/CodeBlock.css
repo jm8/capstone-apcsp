@@ -1,0 +1,53 @@
+.CodeBlock {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.CodeBlock span {
+    display: inline-block;
+}
+
+.CodeBlock div {
+    display: table;
+}
+
+.CodeBlock .indentedBlock {
+    margin-left: 0.75em;
+     border: 0.10em solid black;
+     border-radius: .56em;
+     padding: 0.3333em;
+     background-color: #ffffff;
+}
+
+.CodeBlock .rounded {
+    border: 0.10em solid black;
+    border-radius: .56em;
+    padding: 0.3333em;
+}
+
+.CodeBlock .oval {
+    border: 0.10em solid black;
+    border-radius: 500px;
+    padding: 0.25em;
+    /* margin: 0.3333em 0; */
+}
+
+
+.CodeBlock .filled {
+    border: 0.10em solid black;
+    border-radius: .56em;
+    padding: 0.3333em;
+    background-color: #c7c8ca
+}
+
+.CodeBlock .box {
+    border: 0.10em solid black;
+    padding: 0.25em;
+}
+
+.condition {
+    margin-bottom: .3em;
+}
+
+.CodeBlock .alt {
+    display: none;
+}

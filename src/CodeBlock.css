@@ -11,7 +11,7 @@
 }
 
 .CodeBlock .indentedBlock {
-    margin-left: 0.75em;
+    margin-left: 1.25em;
      border: 0.10em solid black;
      border-radius: .56em;
      padding: 0.3333em;
@@ -36,7 +36,7 @@
     border: 0.10em solid black;
     border-radius: .56em;
     padding: 0.3333em;
-    background-color: #c7c8ca
+    background-color: #c7c8ca;
 }
 
 .CodeBlock .box {

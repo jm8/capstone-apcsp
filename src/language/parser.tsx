@@ -1,26 +1,19 @@
 import { Ast } from './ast'
 
-const varr = (name: string): Ast => ({ type: 'variable', name });
-export function parse(code: string): Ast[] {
-    return [
-        {
-            type: 'foreach',
-            itemvar: varr('item'),
-            list: {
-                type: "list",
-                items: [
-                    varr('a'), varr('b'), varr('c')
-                ]
-            },
-            block: [
-                {
-                    type: 'exprstat', expr: {
-                        type: 'call',
-                        procedure: varr('DISPLAY'),
-                        paramaters: [varr('item')]
-                    }
-                }
-            ]
-        }
-    ]
+type Location = { line: number, col: number };
+
+export class ParseError extends Error {
+    location: Location;
+    constructor(location: Location, message: string) {
+        super(message);
+        Object.setPrototypeOf(this, ParseError.prototype);
+
+        this.location = location;
+    }
 }
+
+
+export function parse(code: string): Ast[] {
+    throw new ParseError({ line: 2, col: 3 }, "hmm");
+}
+

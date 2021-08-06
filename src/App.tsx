@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Editor from './Editor';
 import Running from './Running';
-import { parse } from './language/parser'
+import { parse, ParseError } from './language/parser'
 import './App.css';
 import { Ast } from './language/ast';
 
@@ -10,17 +10,27 @@ function App() {
     | { mode: "editing", code: string }
     | { mode: "running", code: string, asts: Ast[] };
   const [data, setData] = useState<Data>({ mode: "editing", code: "" });
+  const [error, setError] = useState<ParseError | null>(null);
 
   function onRun() {
-    setData({
-      mode: "running",
-      code: data.code,
-      asts: parse(data.code)
-    })
+    try {
+      setData({
+        mode: "running",
+        code: data.code,
+        asts: parse(data.code)
+      });
+      setError(null);
+    } catch (e) {
+      if (e instanceof ParseError) {
+        setError(e);
+      } else {
+        throw e;
+      }
+    }
   }
   let content;
   if (data.mode === "editing") {
-    content = <Editor code={data.code} setCode={(code) => setData({ ...data, code })} onRun={onRun} />
+    content = <Editor code={data.code} setCode={(code) => setData({ ...data, code })} onRun={onRun} error={error} />
   } else if (data.mode === "running") {
     content = <Running code={data.code} asts={data.asts} onClose={() => setData({ mode: "editing", code: data.code })} />
   }

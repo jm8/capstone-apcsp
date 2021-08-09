@@ -1,7 +1,13 @@
-export type Operator =
-    | "+" | "-" | "*" | "/" | "MOD"
-    | "=" | "!=" | ">" | "<" | ">=" | "<="
-    | "AND" | "OR";
+// https://stackoverflow.com/a/64174790/13155893
+export const operators = ["+", "-", "*", "/", "MOD"
+    , "=", "!=", ">", "<", ">=", "<="
+    , "AND", "OR"] as const;
+export type Operator = typeof operators[number];
+
+export type Literal =
+    | { type: "string", value: string }
+    | { type: "number", value: number }
+    | { type: "boolean", value: boolean };
 export type Ast =
     | { type: "assign", lhs: Ast, rhs: Ast }
     | { type: "operator", operator: Operator, lhs: Ast, rhs: Ast }
@@ -17,9 +23,23 @@ export type Ast =
     | { type: "return", value: Ast }
     | { type: "returnvoid" }
     | { type: "call", procedure: Ast, paramaters: Ast[] }
-    | { type: "string", value: string }
-    | { type: "number", value: number }
-    | { type: "boolean", value: boolean }
+    | Literal
     | { type: "variable", name: string }
     | { type: "exprstat", expr: Ast }
+    ;
+
+export type Location = { line: number, col: number };
+
+export const keywords = ["AND", "EACH", "ELSE", "FOR", "IF", "IN", "MOD", "NOT", "OR", "PROCEDURE", "REPEAT", "RETURN", "REPEATTIMES", "UNTIL"] as const;
+export type Keyword = typeof keywords[number];
+
+export const symbols = ["{", "}", "[", "]", "(", ")", "<-", ","] as const;
+export type Symbol = typeof symbols[number];
+
+export type Token =
+    | { type: Operator }
+    | { type: Keyword }
+    | { type: Symbol }
+    | { type: "variable", name: string }
+    | Literal
     ;

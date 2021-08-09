@@ -1,6 +1,4 @@
-import { Ast } from './ast'
-
-type Location = { line: number, col: number };
+import { Ast, Operator, Location } from './ast'
 
 export class ParseError extends Error {
     location: Location;

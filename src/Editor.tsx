@@ -12,7 +12,7 @@ export default function Editor({ code, setCode, onRun, error }:
         <div className="toolbar"><button onClick={() => onRun()}>Run</button></div>
         <div className="codeErrorMessageContainer">
             <AceEditor className="code" fontSize={18} value={code} onChange={(x) => setCode(x)}></AceEditor>
-            {error && <div className="errorMessage">{error.message}</div>}
+            {error && <div className="errorMessage">{error.location.line}:{error.location.col} {error.message}</div>}
         </div>
     </div>
     )

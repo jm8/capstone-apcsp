@@ -3,12 +3,12 @@ import Editor from './Editor';
 import Running from './Running';
 import { parse, ParseError } from './language/parser'
 import './App.css';
-import { Ast } from './language/ast';
+import { Ast, Statement } from './language/ast';
 
 function App() {
   type Data =
     | { mode: "editing", code: string }
-    | { mode: "running", code: string, asts: Ast[] };
+    | { mode: "running", code: string, asts: Statement[] };
   const [data, setData] = useState<Data>({ mode: "editing", code: "" });
   const [error, setError] = useState<ParseError | null>(null);
 

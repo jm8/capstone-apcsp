@@ -6,7 +6,7 @@ export type Value =
     | { type: "string", value: string }
     | { type: "boolean", value: boolean }
     | { type: "list", value: Value[] }
-    | { type: "procedure", builtin: true, call(params: Value[]): Value }
+    | { type: "procedure", builtin: true, call(ast: Ast<Annotations>, params: Value[]): Promise<Value> }
     | { type: "void" }
 
 export type Annotations = { evaluated?: Value, isRunning?: boolean, error?: string }
@@ -18,11 +18,49 @@ export class RuntimeError extends Error {
     }
 }
 
+type InterpreterCallbacks = {
+    onDisplay(x: Value): Promise<void>
+    onInput(): Promise<string>
+}
+
 export class Interpreter {
     globals: Map<string, Value>;
+    callbacks: InterpreterCallbacks;
 
-    constructor() {
+    constructor(callbacks: InterpreterCallbacks) {
+        this.callbacks = callbacks;
         this.globals = new Map();
+
+        this.globals.set("DISPLAY", {
+            type: "procedure",
+            builtin: true,
+            call: (async (ast: Ast<Annotations>, params: Value[]) => {
+                debugger;
+                if (params.length !== 1) {
+                    this.error(ast, "DISPLAY takes 1 argument");
+                }
+                await this.callbacks.onDisplay(params[0]);
+                console.log("continuing to next DISPLAY")
+                return { type: "void" };
+            })
+        })
+
+        this.globals.set("INPUT", {
+            type: "procedure",
+            builtin: true,
+            call: (async (ast: Ast<Annotations>, params: Value[]) => {
+                if (params.length !== 0) {
+                    this.error(ast, "INPUT takes no arguments");
+                }
+                const inputString = await this.callbacks.onInput();
+                const num = Number(inputString);
+                if (num === NaN) {
+                    return { type: "string", value: inputString }
+                } else {
+                    return { type: "number", value: num };
+                }
+            })
+        })
     }
 
     error(expr: Ast<Annotations>, message: string): never {
@@ -42,7 +80,7 @@ export class Interpreter {
     async runBlock(block: Statement<Annotations>[]): Promise<void> {
         for (let stat of block) {
             stat.isRunning = true;
-            this.run(stat);
+            await this.run(stat);
             stat.isRunning = false;
         }
     }
@@ -67,20 +105,20 @@ export class Interpreter {
     async run(ast: Statement<Annotations>): Promise<void> {
         if (ast.type === "assign") {
             const value = await this.evaluate(ast.rhs);
-            this.assign(ast.lhs, value);
+            await this.assign(ast.lhs, value);
         } else if (ast.type === "if") {
             const condition = (await this.expectType(ast.condition, "boolean")).value;
             ast.condition.evaluated = { type: "boolean", value: condition };
             if (condition) {
-                this.runBlock(ast.iftrue);
+                await this.runBlock(ast.iftrue);
             }
         } else if (ast.type === "ifelse") {
             const condition = (await this.expectType(ast.condition, "boolean")).value;
             ast.condition.evaluated = { type: "boolean", value: condition };
             if (condition) {
-                this.runBlock(ast.iftrue);
+                await this.runBlock(ast.iftrue);
             } else {
-                this.runBlock(ast.iffalse);
+                await this.runBlock(ast.iffalse);
             }
         } else if (ast.type === "exprstat") {
             this.evaluate(ast.expr);
@@ -97,13 +135,13 @@ export class Interpreter {
             if (n < 0) this.error(ast.times, "must be positive");
 
             for (let i = 0; i < n; i++) {
-                this.runBlock(ast.block);
+                await this.runBlock(ast.block);
             }
         } else if (ast.type === "repeatuntil") {
             while (true) {
                 const condition = (await this.expectType(ast.condition, "boolean")).value;
                 if (condition) break;
-                this.runBlock(ast.block);
+                await this.runBlock(ast.block);
             }
         } else if (ast.type === "return") {
             this.error(ast, "can't handle this");
@@ -186,7 +224,8 @@ export class Interpreter {
             for (const item of ast.paramaters) {
                 paramaters.push(await this.evaluate(item));
             }
-            return procedure.call(paramaters);
+            // we need to pass the ast so it can set 'error' flag
+            return await procedure.call(ast, paramaters);
         }
         this.error(ast, "can't handle this");
     }

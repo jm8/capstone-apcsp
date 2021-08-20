@@ -48,6 +48,17 @@ function firstToken(code: string): { whitespace: string, text: string, token: To
     }
 
     if (!text) {
+        const stringMatch = /^"(([^"\\]|(\\.))*)"/.exec(remainder);
+        if (stringMatch) {
+            text = stringMatch[0];
+            const value = stringMatch[1]
+                .replace("\\n", "\n")
+                .replace("\\", "");
+            token = { type: "string", value };
+        }
+    }
+
+    if (!text) {
         const idMatch = /^[a-zA-Z_][a-zA-Z_0-9]*/.exec(remainder);
         if (idMatch) {
             text = idMatch[0];

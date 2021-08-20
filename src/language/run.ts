@@ -35,7 +35,6 @@ export class Interpreter {
             type: "procedure",
             builtin: true,
             call: (async (ast: Ast<Annotations>, params: Value[]) => {
-                debugger;
                 if (params.length !== 1) {
                     this.error(ast, "DISPLAY takes 1 argument");
                 }
@@ -54,7 +53,7 @@ export class Interpreter {
                 }
                 const inputString = await this.callbacks.onInput();
                 const num = Number(inputString);
-                if (num === NaN) {
+                if (isNaN(num)) {
                     return { type: "string", value: inputString }
                 } else {
                     return { type: "number", value: num };

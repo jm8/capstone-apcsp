@@ -14,7 +14,7 @@ export default function Running({ code, asts, onClose }:
     const onRun = () => {
         setDisplayed([]);
         const newInterpreter = new Interpreter({
-            async onDisplay(x: Value) { setDisplayed([...displayed, x]) },
+            async onDisplay(x: Value) { setDisplayed(displayed => [...displayed, x]) },
             onInput() {
                 return new Promise(resolve => {
                     resolve(prompt("Input") ?? "");
@@ -30,7 +30,7 @@ export default function Running({ code, asts, onClose }:
         <button onClick={e => onRun()}>Run</button>
         <CodeBlock asts={asts} />
         <ul>
-            {displayed.map((x, i) => <li>{x.type === "void" ? "[void]" : x.type === "procedure" ? "[procedure]" : x.value.toString()}</li>)}
+            {displayed.map((x, i) => <li key={i}>{x.type === "void" ? "[void]" : x.type === "procedure" ? "[procedure]" : x.value.toString()}</li>)}
         </ul>
     </div>)
 }

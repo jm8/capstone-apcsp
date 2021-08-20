@@ -1,4 +1,4 @@
-import { Ast, Location, Token, isLiteral, operators, isAssignable, LocatedToken, Statement, Expression } from './ast'
+import { Location, Token, isLiteral, operators, isAssignable, LocatedToken, Statement, Expression } from './ast'
 import { tokenize } from './tokenizer';
 
 export class ParseError extends Error {

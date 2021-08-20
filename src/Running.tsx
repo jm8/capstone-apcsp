@@ -1,19 +1,17 @@
 import { useState } from "react";
 import CodeBlock from "./CodeBlock";
-import { Ast, Statement } from "./language/ast";
+import { Statement } from "./language/ast";
 import { Annotations, Interpreter, Value } from "./language/run";
-import { tokenize } from "./language/tokenizer";
 import "./Running.css"
 
 export default function Running({ code, asts, onClose }:
     { code: string, asts: Statement<Annotations>[], onClose: () => void }) {
 
-    const [interpreter, setInterpreter] = useState<Interpreter>(null!);
     const [displayed, setDisplayed] = useState<Value[]>([]);
 
     const onRun = () => {
         setDisplayed([]);
-        const newInterpreter = new Interpreter({
+        const interpreter = new Interpreter({
             async onDisplay(x: Value) { setDisplayed(displayed => [...displayed, x]) },
             onInput() {
                 return new Promise(resolve => {
@@ -21,8 +19,7 @@ export default function Running({ code, asts, onClose }:
                 })
             }
         });
-        setInterpreter(newInterpreter)
-        newInterpreter.runBlock(asts);
+        interpreter.runBlock(asts);
     }
 
     return (<div className="Running">

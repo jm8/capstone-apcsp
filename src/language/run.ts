@@ -1,5 +1,4 @@
-import { isDeepStrictEqual } from "util";
-import { AssignableExpression, Ast, Expression, Literal, Operator, Statement } from "./ast";
+import { AssignableExpression, Ast, Expression, Statement } from "./ast";
 
 export type Value =
     | { type: "number", value: number }
@@ -16,6 +15,24 @@ export class RuntimeError extends Error {
         super("the message is in the AST");
         Object.setPrototypeOf(this, RuntimeError.prototype);
     }
+}
+
+export function isEqual(a: Value, b: Value): boolean {
+    if ((a.type === "boolean" && b.type === "boolean")
+        || (a.type === "number" && b.type === "number")
+        || (a.type === "string" && b.type === "string")) {
+        return a.value === b.value;
+    } else if (a.type === "list" && b.type === "list") {
+        if (a.value.length !== b.value.length) return false;
+        for (let i = 0; i < a.value.length; i++) {
+            if (a.value[i] !== b.value[i]) return false;
+            return true;
+        }
+    } else if (a.type === "procedure" && b.type === "procedure") {
+        if (a.builtin && b.builtin) return a.call === b.call;
+        return false;
+    } else if (a.type === "void" && b.type === "void") return true;
+    return false;
 }
 
 type InterpreterCallbacks = {
@@ -85,7 +102,6 @@ export class Interpreter {
     }
 
     async assign(ast: AssignableExpression<Annotations>, value: Value) {
-        if (value.type === "void") { this.error(ast, "must have a value") }
         if (ast.type === "variable") {
             this.globals.set(ast.name, value);
         } else {
@@ -124,7 +140,8 @@ export class Interpreter {
         } else if (ast.type === "foreach") {
             const list = (await this.expectType(ast.list, "list")).value;
             for (const x of list) {
-                this.assign(ast.itemvar, x);
+                await this.assign(ast.itemvar, x);
+                await this.runBlock(ast.block);
             }
         } else if (ast.type === "procedure") {
             this.error(ast, "can't handle this");
@@ -154,7 +171,8 @@ export class Interpreter {
             if (ast.operator === "!=" || ast.operator === "=") {
                 const lhs = await this.evaluate(ast.lhs);
                 const rhs = await this.evaluate(ast.rhs);
-                const equals = isDeepStrictEqual(lhs, rhs);
+                const equals = isEqual(lhs, rhs);
+
                 const result = ast.operator === "!=" ? !equals : equals;
                 return { type: "boolean", value: result };
             } else if (ast.operator === "*" || ast.operator === "+" ||

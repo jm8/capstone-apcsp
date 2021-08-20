@@ -3,7 +3,7 @@ import Editor from './Editor';
 import Running from './Running';
 import { parse, ParseError } from './language/parser'
 import './App.css';
-import { Ast, Statement } from './language/ast';
+import { Statement } from './language/ast';
 
 function App() {
   type Data =

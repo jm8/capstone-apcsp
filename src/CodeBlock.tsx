@@ -1,9 +1,9 @@
-import { Ast } from "./language/ast";
+import { Ast, Statement } from "./language/ast";
 
 import "./CodeBlock.css";
 import React from "react";
 
-export default function CodeBlock({ asts }: { asts: Ast[] }) {
+export default function CodeBlock({ asts }: { asts: Statement[] }) {
     return (<div className="CodeBlock">
         {asts.map((x, i) => <AstElement key={i} ast={x} />)}
     </div>)
@@ -55,10 +55,17 @@ function AstElement({ ast, parens = "never" }: { ast: Ast, parens?: "always" | "
         return (<div className="rounded">{render(ast.lhs)} &larr; {render(ast.rhs)}</div>);
     }
     else if (ast.type === "operator") {
-        return parensIfOperator(<span>{inParensIfOperator(ast.lhs)} {ast.operator} {inParensIfOperator(ast.rhs)}</span>)
+        const opString = ast.operator === "!=" ? "≠"
+            : ast.operator === ">=" ? "≥"
+                : ast.operator === "<=" ? "≤"
+                    : ast.operator;
+        return parensIfOperator(<span>{inParensIfOperator(ast.lhs)} {opString} {inParensIfOperator(ast.rhs)}</span>)
     }
     else if (ast.type === "not") {
         return parensIfOperator(<span>NOT {inParensIfOperator(ast.value)}</span>)
+    }
+    else if (ast.type === "negate") {
+        return parensIfOperator(<span>-{inParensIfOperator(ast.value)}</span>)
     }
     else if (ast.type === "if") {
         return <div className="filled">
@@ -105,10 +112,10 @@ function AstElement({ ast, parens = "never" }: { ast: Ast, parens?: "always" | "
         </div>
     }
     else if (ast.type === "return") {
-        return <div className="round">RETURN <div className="box">{render(ast.value)}</div></div>
+        return <div className="rounded">RETURN <span className="box">{render(ast.value)}</span></div>
     }
     else if (ast.type === "returnvoid") {
-        return <div className="round">RETURN</div>
+        return <div className="rounded">RETURN</div>
     }
     else if (ast.type === "call") {
         return parensIfOperator(<span>{render(ast.procedure)} {ast.paramaters.length > 0 && boxList(ast.paramaters)}</span>)

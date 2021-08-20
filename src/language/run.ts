@@ -38,6 +38,7 @@ export function isEqual(a: Value, b: Value): boolean {
 type InterpreterCallbacks = {
     onDisplay(x: Value): Promise<void>
     onInput(): Promise<string>
+    onStep(): Promise<void>
 }
 
 export class Interpreter {
@@ -79,6 +80,14 @@ export class Interpreter {
         })
     }
 
+    async step(expr: Ast<Annotations>): Promise<void> {
+        expr.isRunning = true;
+        console.log("ste...")
+        await this.callbacks.onStep();
+        console.log("...p")
+        expr.isRunning = false;
+    }
+
     error(expr: Ast<Annotations>, message: string): never {
         expr.error = message;
         throw new RuntimeError();
@@ -93,11 +102,17 @@ export class Interpreter {
         }
     }
 
+    interpretCancelable(block: Statement<Annotations>[]): Promise<void> {
+        let cancel;
+        const promise = new Promise<void>((resolve, reject) => {
+            cancel = resolve;
+        }).then()
+    }
+
     async runBlock(block: Statement<Annotations>[]): Promise<void> {
         for (let stat of block) {
-            stat.isRunning = true;
+            await this.step(stat);
             await this.run(stat);
-            stat.isRunning = false;
         }
     }
 

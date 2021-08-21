@@ -2,19 +2,33 @@ import { Ast, Statement } from "./language/ast";
 
 import "./CodeBlock.css";
 import React from "react";
+import { Annotations } from "./language/run";
 
-export default function CodeBlock({ asts }: { asts: Statement[] }) {
+export default function CodeBlock({ asts }: { asts: Statement<Annotations>[] }) {
     return (<div className="CodeBlock">
-        {asts.map((x, i) => <AstElement key={i} ast={x} />)}
+        {asts.map((x, i) => <AnnotatedAstElement key={i} ast={x} />)}
     </div>)
 }
 
-function AstElement({ ast, parens = "never" }: { ast: Ast, parens?: "always" | "ifoperator" | "never" }) {
+function AnnotatedAstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
+    const astElement = <AstElement ast={ast} parens={parens} />
 
-    const render = (subast: Ast) => <AstElement ast={subast} />
+    if (ast.isRunning) {
+        return <div className="running">
+            <div className="runningArrow">{">"}</div>
+            {astElement}
+        </div>
+    } else {
+        return astElement;
+    }
+}
 
-    const alwaysInParens = (subast: Ast) => <AstElement ast={subast} parens="always" />
-    const inParensIfOperator = (subast: Ast) => <AstElement ast={subast} parens="ifoperator" />
+function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
+
+    const render = (subast: Ast) => <AnnotatedAstElement ast={subast} />
+
+    const alwaysInParens = (subast: Ast) => <AnnotatedAstElement ast={subast} parens="always" />
+    const inParensIfOperator = (subast: Ast) => <AnnotatedAstElement ast={subast} parens="ifoperator" />
 
     const parensIfAlways = (x: JSX.Element) => {
         if (parens === "always") {

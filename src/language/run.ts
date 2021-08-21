@@ -1,4 +1,6 @@
 import { AssignableExpression, Ast, Expression, Statement } from "./ast";
+import cloneDeep from "lodash.clonedeep";
+import isequal from "lodash.isequal";
 
 export type Value =
     | { type: "number", value: number }
@@ -17,33 +19,24 @@ export class RuntimeError extends Error {
     }
 }
 
-export function isEqual(a: Value, b: Value): boolean {
-    if ((a.type === "boolean" && b.type === "boolean")
-        || (a.type === "number" && b.type === "number")
-        || (a.type === "string" && b.type === "string")) {
-        return a.value === b.value;
-    } else if (a.type === "list" && b.type === "list") {
-        if (a.value.length !== b.value.length) return false;
-        for (let i = 0; i < a.value.length; i++) {
-            if (a.value[i] !== b.value[i]) return false;
-            return true;
-        }
-    } else if (a.type === "procedure" && b.type === "procedure") {
-        if (a.builtin && b.builtin) return a.call === b.call;
-        return false;
-    } else if (a.type === "void" && b.type === "void") return true;
-    return false;
+export class Cancel extends Error {
+    constructor() {
+        super("we have canceled");
+        Object.setPrototypeOf(this, Cancel.prototype);
+    }
 }
 
 type InterpreterCallbacks = {
     onDisplay(x: Value): Promise<void>
     onInput(): Promise<string>
-    onStep(): Promise<void>
+    onStepPause(annotatedAst: Statement<Annotations>[]): Promise<void>
 }
 
 export class Interpreter {
     globals: Map<string, Value>;
     callbacks: InterpreterCallbacks;
+    shouldCancel: boolean = false;
+    annotatedAst: Statement<Annotations>[] = [];
 
     constructor(callbacks: InterpreterCallbacks) {
         this.callbacks = callbacks;
@@ -80,10 +73,30 @@ export class Interpreter {
         })
     }
 
+    interpret(asts: Statement<Annotations>[]) {
+        this.annotatedAst = cloneDeep(asts);
+        const promise = this.runBlock(this.annotatedAst);
+        promise.catch(e => {
+            if (e instanceof Cancel || e instanceof RuntimeError) { }
+            else {
+                throw e;
+            }
+            return () => { console.log("Canceling"); };
+        });
+        return promise;
+    }
+
+    async maybeCancel(): Promise<void> {
+        if (this.shouldCancel) {
+            this.shouldCancel = false;
+            throw new Cancel();
+        }
+    }
+
     async step(expr: Ast<Annotations>): Promise<void> {
         expr.isRunning = true;
         console.log("ste...")
-        await this.callbacks.onStep();
+        await this.callbacks.onStepPause(cloneDeep(this.annotatedAst));
         console.log("...p")
         expr.isRunning = false;
     }
@@ -100,13 +113,6 @@ export class Interpreter {
         } else {
             this.error(expr, `should be a ${type}`)
         }
-    }
-
-    interpretCancelable(block: Statement<Annotations>[]): Promise<void> {
-        let cancel;
-        const promise = new Promise<void>((resolve, reject) => {
-            cancel = resolve;
-        }).then()
     }
 
     async runBlock(block: Statement<Annotations>[]): Promise<void> {
@@ -133,6 +139,7 @@ export class Interpreter {
     }
 
     async run(ast: Statement<Annotations>): Promise<void> {
+        this.maybeCancel();
         if (ast.type === "assign") {
             const value = await this.evaluate(ast.rhs);
             await this.assign(ast.lhs, value);
@@ -182,11 +189,12 @@ export class Interpreter {
     }
 
     async evaluate(ast: Expression<Annotations>): Promise<Value> {
+        this.maybeCancel();
         if (ast.type === "operator") {
             if (ast.operator === "!=" || ast.operator === "=") {
                 const lhs = await this.evaluate(ast.lhs);
                 const rhs = await this.evaluate(ast.rhs);
-                const equals = isEqual(lhs, rhs);
+                const equals = isequal(lhs, rhs);
 
                 const result = ast.operator === "!=" ? !equals : equals;
                 return { type: "boolean", value: result };

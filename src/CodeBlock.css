@@ -51,3 +51,14 @@
 .CodeBlock .alt {
     display: none;
 }
+
+.CodeBlock .running {
+    position: relative;
+}
+
+.CodeBlock .runningArrow {
+    position: absolute;
+    right: 105%;
+    top: 50%;
+    transform: translateY(-50%);
+}

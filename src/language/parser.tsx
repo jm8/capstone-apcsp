@@ -114,6 +114,9 @@ class Parser {
                 return { type: "if", condition, iftrue };
             }
         }
+        else if (this.accept("BREAKPOINT")) {
+            return { type: "breakpoint" };
+        }
         else if (this.accept("RETURN")) {
             if (!this.next || this.next.type === "}") {
                 return { type: "returnvoid" };

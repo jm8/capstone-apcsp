@@ -51,9 +51,7 @@ function firstToken(code: string): { whitespace: string, text: string, token: To
         const stringMatch = /^"(([^"\\]|(\\.))*)"/.exec(remainder);
         if (stringMatch) {
             text = stringMatch[0];
-            const value = stringMatch[1]
-                .replace("\\n", "\n")
-                .replace("\\", "");
+            const value = JSON.parse(stringMatch[0])
             token = { type: "string", value };
         }
     }

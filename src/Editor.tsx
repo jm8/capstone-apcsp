@@ -1,8 +1,7 @@
 import { ParseError } from "./language/parser";
-
-
 import "./Editor.css";
 import AceEditor from "react-ace";
+import React from "react";
 
 export default function Editor({ code, setCode, onRun, error }:
     { code: string, setCode: (code: string) => void, onRun: () => void, error: ParseError | null }) {

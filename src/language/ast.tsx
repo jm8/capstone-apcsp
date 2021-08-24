@@ -24,7 +24,8 @@ export type Statement<T = {}> = (
     | { type: "procedure", name: string, paramaters: string[], block: Statement<T>[] }
     | { type: "return", value: Expression<T> }
     | { type: "returnvoid" }
-    | { type: "exprstat", expr: Expression<T> }) & T
+    | { type: "exprstat", expr: Expression<T> }
+    | { type: "breakpoint" }) & T
 
 
 export type Expression<T = {}> = (
@@ -50,7 +51,7 @@ export function isAssignable(ast: Expression): ast is AssignableExpression {
 
 export type Location = { line: number, col: number };
 
-export const keywords = ["AND", "EACH", "ELSE", "FOR", "IF", "IN", "MOD", "NOT", "OR", "PROCEDURE", "REPEAT", "RETURN", "TIMES", "UNTIL"] as const;
+export const keywords = ["AND", "EACH", "ELSE", "FOR", "IF", "IN", "MOD", "NOT", "OR", "PROCEDURE", "REPEAT", "RETURN", "TIMES", "UNTIL", "BREAKPOINT"] as const;
 export type Keyword = typeof keywords[number];
 
 export const symbols = ["{", "}", "[", "]", "(", ")", "<-", ","] as const;

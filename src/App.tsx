@@ -38,7 +38,7 @@ function App() {
   return (
     <div className="App">
       {content}
-      <footer><div>Based on the AP® Computer Science Principles exam's <a href="https://apcentral.collegeboard.org/pdf/ap-computer-science-principles-exam-reference-sheet.pdf">reference sheet.</a></div><div>AP® is a trademark registered by the College Board, which is not affiliated with, and does not endorse, this site.</div></footer>
+      <footer><div>Based on the AP® Computer Science Principles exam&apos;s <a href="https://apcentral.collegeboard.org/pdf/ap-computer-science-principles-exam-reference-sheet.pdf">reference sheet.</a></div><div>AP® is a trademark registered by the College Board, which is not affiliated with, and does not endorse, this site.</div></footer>
     </div>
   );
 }

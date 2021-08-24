@@ -8,3 +8,17 @@
     padding: 1em;
     font-size: small;
 }
+
+.toolbar {
+    margin: 1em;
+    display: flex;
+    gap: .5em;
+    /* background-color: #c7c8ca; */
+}
+
+/* .toolbar button {
+    width: 6em;
+    border-radius: 0;
+    border: none;
+    background: none;
+} */

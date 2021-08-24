@@ -57,8 +57,20 @@
 }
 
 .CodeBlock .runningArrow {
+    font-family: 'Courier New', Courier, monospace;
     position: absolute;
-    right: 105%;
+    right: 100;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) translateX(-.8em);
+}
+
+.CodeBlock .errorContainer {
+    position: absolute;
+}
+
+.CodeBlock .errorText {
+    position: relative;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(1em);
 }

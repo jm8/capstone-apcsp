@@ -4,31 +4,30 @@ import "./CodeBlock.css";
 import React from "react";
 import { Annotations } from "./language/run";
 
-export default function CodeBlock({ asts }: { asts: Statement<Annotations>[] }) {
+export function CodeBlock({ asts }: { asts: Statement<Annotations>[] }) {
     return (<div className="CodeBlock">
-        {asts.map((x, i) => <AnnotatedAstElement key={i} ast={x} />)}
+        {asts.map((x, i) => <AstElement key={i} ast={x} />)}
     </div>)
 }
 
-function AnnotatedAstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
-    const astElement = <AstElement ast={ast} parens={parens} />
-
-    if (ast.isRunning) {
-        return <div className="running">
-            <div className="runningArrow">{">"}</div>
-            {astElement}
+export function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
+    if (ast.error) {
+        return <div className="errorContainer">
+            <div className="errorText">{ast.error}</div>
+            <div><AstElementWithoutError ast={ast} parens={parens} />
+            </div>
         </div>
     } else {
-        return astElement;
+        return <AstElementWithoutError ast={ast} parens={parens} />
     }
 }
 
-function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
+function AstElementWithoutError({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
 
-    const render = (subast: Ast) => <AnnotatedAstElement ast={subast} />
+    const render = (subast: Ast) => <AstElement ast={subast} />
 
-    const alwaysInParens = (subast: Ast) => <AnnotatedAstElement ast={subast} parens="always" />
-    const inParensIfOperator = (subast: Ast) => <AnnotatedAstElement ast={subast} parens="ifoperator" />
+    const alwaysInParens = (subast: Ast) => <AstElement ast={subast} parens="always" />
+    const inParensIfOperator = (subast: Ast) => <AstElement ast={subast} parens="ifoperator" />
 
     const parensIfAlways = (x: JSX.Element) => {
         if (parens === "always") {
@@ -65,8 +64,22 @@ function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?:
         }
         return <span className="box"><span className="alt">[</span>{content}<span className="alt">]</span></span>;
     }
+
+    const arrowOnLeft = (el: JSX.Element, running: boolean = false) => {
+        if (running) {
+            return <div className="running">
+                <div className="runningArrow">{">"}</div>
+                {el}
+            </div>
+        } else {
+            return el;
+        }
+    }
+
     if (ast.type === "assign") {
-        return (<div className="rounded">{render(ast.lhs)} &larr; {render(ast.rhs)}</div>);
+        return arrowOnLeft(<div className="rounded">{render(ast.lhs)} &larr; {render(ast.rhs)}</div>, ast.isRunning);
+    } else if (ast.type === "breakpoint") {
+        return arrowOnLeft(<div className="rounded">BREAKPOINT</div>, ast.isRunning);
     }
     else if (ast.type === "operator") {
         const opString = ast.operator === "!=" ? "≠"
@@ -83,13 +96,13 @@ function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?:
     }
     else if (ast.type === "if") {
         return <div className="filled">
-            <div className="condition">IF {alwaysInParens(ast.condition)}</div>
+            {arrowOnLeft(<div className="condition">IF {alwaysInParens(ast.condition)}</div>, ast.isRunning)}
             {renderBlock(ast.iftrue)}
         </div >
     }
     else if (ast.type === "ifelse") {
         return <div className="filled">
-            <div className="condition">IF {alwaysInParens(ast.condition)}</div>
+            {arrowOnLeft(<div className="condition">IF {alwaysInParens(ast.condition)}</div>, ast.isRunning)}
             {renderBlock(ast.iftrue)}
             <div className="condition">ELSE</div>
             {renderBlock(ast.iffalse)}
@@ -126,19 +139,19 @@ function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?:
         </div>
     }
     else if (ast.type === "return") {
-        return <div className="rounded">RETURN <span className="box">{render(ast.value)}</span></div>
+        return arrowOnLeft(<div className="rounded">RETURN <span className="box">{render(ast.value)}</span></div>, ast.isRunning)
     }
     else if (ast.type === "returnvoid") {
-        return <div className="rounded">RETURN</div>
+        return arrowOnLeft(<div className="rounded">RETURN</div>, ast.isRunning)
     }
     else if (ast.type === "call") {
         return parensIfOperator(<span>{render(ast.procedure)} {ast.paramaters.length > 0 && boxList(ast.paramaters)}</span>)
     }
     else if (ast.type === "exprstat") {
-        return <div className="rounded">{render(ast.expr)}</div>
+        return arrowOnLeft(<div className="rounded">{render(ast.expr)}</div>, ast.isRunning)
     }
     else if (ast.type === "string") {
-        return parensIfAlways(<span>"{ast.value}"</span>) // todo: fix
+        return parensIfAlways(<span>&quot;{ast.value}&quot;</span>) // todo: fix
     }
     else if (ast.type === "number") {
         return parensIfAlways(<span>{ast.value.toString()}</span>)
@@ -149,5 +162,5 @@ function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?:
     else if (ast.type === "variable") {
         return parensIfAlways(<span>{ast.name}</span>)
     }
-    return <span>"??"</span>;
+    return <span>??</span>;
 }

@@ -1,8 +1,10 @@
 import { useEffect } from "react";
+import React from "react";
 import { useState } from "react";
-import CodeBlock from "./CodeBlock";
+import { CodeBlock } from "./CodeBlock";
 import { Statement } from "./language/ast";
-import { Annotations, Interpreter, Value } from "./language/run";
+import { Annotations, Cancel, Interpreter, RuntimeError, Value } from "./language/run";
+import RenderValue from "./RenderValue";
 import "./Running.css"
 
 export default function Running({ code, asts: unAnnotated, onClose }:
@@ -12,14 +14,17 @@ export default function Running({ code, asts: unAnnotated, onClose }:
     const [interpreter, setInterpreter] = useState<Interpreter | null>(null);
     const [annotated, setAnnotated] = useState<Statement<Annotations>[]>(unAnnotated);
     const [nextStep, setNextStep] = useState<(() => void) | null>(null);
+    const [variables, setVariables] = useState<Map<string, Value>>(new Map());
+    const [error, setError] = useState<boolean>(false);
 
-    useEffect(() => {
-        return function cleanup() {
-            if (interpreter) interpreter.shouldCancel = true;
-        }
-    }, [interpreter]);
+    const cancel = (interpreter: Interpreter | null) => {
+        if (interpreter) interpreter.shouldCancel = true;
+        setNextStep(null);
+        setInterpreter(null);
+        setAnnotated(unAnnotated);
+    }
 
-    const onRun = () => {
+    const onRun = (shouldStep: boolean) => {
         setDisplayed([]);
         const newInterpreter = new Interpreter({
             async onDisplay(x: Value) { setDisplayed(displayed => [...displayed, x]) },
@@ -28,29 +33,53 @@ export default function Running({ code, asts: unAnnotated, onClose }:
                     resolve(prompt("Input") ?? "");
                 })
             },
-            onStepPause(annotated: Statement<Annotations>[]) {
+            onInfo(annotated: Statement<Annotations>[], variables: Map<string, Value>) {
                 setAnnotated(annotated);
+                setVariables(variables);
+            },
+            onStepPause() {
                 return new Promise<void>((resolve) => {
-                    // setTimeout(resolve, 100)
                     setNextStep(nextStep => resolve);
                 })
             }
         });
         setInterpreter(newInterpreter);
+        newInterpreter.shouldStep = shouldStep;
         newInterpreter.interpret(unAnnotated)
             .then(() => {
-                setNextStep(null)
-                setAnnotated(unAnnotated);
+                cancel(null);
+            })
+            .catch((err) => {
+                setError(true)
             })
     }
 
     return (<div className="Running">
-        <button onClick={e => onClose()}>Close</button>
-        <button onClick={e => onRun()}>Run</button>
-        {nextStep && <button onClick={e => nextStep()}>Step</button>}
+        <div className="toolbar">
+            <button onClick={e => {
+                cancel(interpreter);
+                onClose();
+            }}>Close</button>
+            {!interpreter && <button onClick={e => onRun(false)}>Run</button>}
+            {!interpreter && <button onClick={e => onRun(true)}>Step through</button>}
+            {interpreter && <button onClick={e => { cancel(interpreter) }}>Stop</button>}
+            {nextStep && interpreter && <button onClick={e => { interpreter.shouldStep = false; nextStep() }}>Continue</button>}
+            {nextStep && <button onClick={e => nextStep()}>Step</button>}
+        </div>
         <CodeBlock asts={annotated} />
+        <pre>
+            {JSON.stringify(annotated, null, 2)}
+        </pre>
+        <dl>
+            {Array.from(variables.entries(), ([name, value]) =>
+                !(value.type === "procedure" && value.builtin) && <>
+                    <dt key={name + "_key"}>{name}</dt>
+                    <dd key={name + "_value"}><RenderValue value={value} /></dd>
+                </>
+            )}
+        </dl>
         <ul>
-            {displayed.map((x, i) => <li key={i}>{x.type === "void" ? "[void]" : x.type === "procedure" ? "[procedure]" : x.value.toString()}</li>)}
+            {displayed.map((x, i) => <li key={i}><RenderValue value={x} /></li>)}
         </ul>
     </div>)
 }

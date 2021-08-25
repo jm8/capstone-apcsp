@@ -8,3 +8,26 @@
 .Running .CodeBlock {
     margin: 1em;
 }
+
+.Running .content {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+}
+
+.Running .left {
+    flex: 1;
+}
+
+.Running .right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.Variables {
+    display: flex;
+    flex-direction: column;
+}
+

@@ -216,7 +216,7 @@ export class Interpreter {
         if (value.type === type) {
             return value as Value & { type: T };
         } else {
-            this.error(expr, `should be a ${type}`)
+            this.error(expr, `must be a ${type}`)
         }
     }
 
@@ -282,7 +282,13 @@ export class Interpreter {
                 await this.runBlock(ast.block);
             }
         } else if (ast.type === "repeatuntil") {
+            let isFirstTime = true;
             while (true) {
+                // runBlock will step on the first time through
+                if (!isFirstTime) {
+                    await this.step(ast);
+                }
+                isFirstTime = false;
                 const condition = (await this.expectType(ast.condition, "boolean")).value;
                 if (condition) break;
                 await this.runBlock(ast.block);

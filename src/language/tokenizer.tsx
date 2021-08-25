@@ -9,10 +9,10 @@ export function tokenize(code: string): (Token & { location: Location })[] {
         const { text, token, whitespace } = firstToken(remainder);
         remainder = remainder.slice(text.length + whitespace.length);
         for (const c of whitespace) {
-            if (c === "\n") { location.col = 1; location.line = 0 } else { location.col++; }
+            if (c === "\n") { location.col = 1; location.line++; } else { location.col++; }
         }
         for (const c of text) {
-            if (c === "\n") { location.col = 1; location.line = 0 } else { location.col++; }
+            if (c === "\n") { location.col = 1; location.line++; } else { location.col++; }
         }
         result.push({ ...token, location });
     }

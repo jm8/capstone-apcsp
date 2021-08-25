@@ -12,11 +12,11 @@ export function CodeBlock({ asts }: { asts: Statement<Annotations>[] }) {
 
 export function AstElement({ ast, parens = "never" }: { ast: Ast<Annotations>, parens?: "always" | "ifoperator" | "never" }) {
     if (ast.error) {
-        return <div className="errorContainer">
+        return <span className="errorContainer">
             <div className="errorText">{ast.error}</div>
-            <div><AstElementWithoutError ast={ast} parens={parens} />
-            </div>
-        </div>
+            <span className="errorElement"><AstElementWithoutError ast={ast} parens={parens} />
+            </span>
+        </span>
     } else {
         return <AstElementWithoutError ast={ast} parens={parens} />
     }
@@ -110,13 +110,13 @@ function AstElementWithoutError({ ast, parens = "never" }: { ast: Ast<Annotation
     }
     else if (ast.type === "repeattimes") {
         return <div className="filled">
-            <div className="condition">REPEAT {inParensIfOperator(ast.times)} TIMES</div>
+            {arrowOnLeft(<div className="condition">REPEAT {inParensIfOperator(ast.times)} TIMES</div>, ast.isRunning)}
             {renderBlock(ast.block)}
         </div>
     }
     else if (ast.type === "repeatuntil") {
         return <div className="filled">
-            <div className="condition">REPEAT UNTIL {alwaysInParens(ast.condition)}</div>
+            {arrowOnLeft(<div className="condition">REPEAT UNTIL {alwaysInParens(ast.condition)}</div>, ast.isRunning)}
             {renderBlock(ast.block)}
         </div>
     }
@@ -128,7 +128,7 @@ function AstElementWithoutError({ ast, parens = "never" }: { ast: Ast<Annotation
     }
     else if (ast.type === "foreach") {
         return <div className="filled">
-            <div className="condition">FOR EACH {inParensIfOperator(ast.itemvar)} IN {inParensIfOperator(ast.list)}</div>
+            {arrowOnLeft(<div className="condition">FOR EACH {inParensIfOperator(ast.itemvar)} IN {inParensIfOperator(ast.list)}</div>, ast.isRunning)}
             {renderBlock(ast.block)}
         </div>
     }

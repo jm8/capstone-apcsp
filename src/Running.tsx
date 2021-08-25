@@ -6,6 +6,7 @@ import { Statement } from "./language/ast";
 import { Annotations, Cancel, Interpreter, RuntimeError, Value } from "./language/run";
 import RenderValue from "./RenderValue";
 import "./Running.css"
+import Variables from "./Variables";
 
 export default function Running({ code, asts: unAnnotated, onClose }:
     { code: string, asts: Statement[], onClose: () => void }) {
@@ -15,7 +16,6 @@ export default function Running({ code, asts: unAnnotated, onClose }:
     const [annotated, setAnnotated] = useState<Statement<Annotations>[]>(unAnnotated);
     const [nextStep, setNextStep] = useState<(() => void) | null>(null);
     const [variables, setVariables] = useState<Map<string, Value>>(new Map());
-    const [error, setError] = useState<boolean>(false);
 
     const cancel = (interpreter: Interpreter | null) => {
         if (interpreter) interpreter.shouldCancel = true;
@@ -50,7 +50,7 @@ export default function Running({ code, asts: unAnnotated, onClose }:
                 cancel(null);
             })
             .catch((err) => {
-                setError(true)
+                setNextStep(null);
             })
     }
 
@@ -66,20 +66,19 @@ export default function Running({ code, asts: unAnnotated, onClose }:
             {nextStep && interpreter && <button onClick={e => { interpreter.shouldStep = false; nextStep() }}>Continue</button>}
             {nextStep && <button onClick={e => nextStep()}>Step</button>}
         </div>
-        <CodeBlock asts={annotated} />
+        <div className="content">
+            <div className="left">
+                <CodeBlock asts={annotated} />
+            </div>
+            <div className="right">
+                <Variables variables={variables} />
+                <ul className="displayed">
+                    {displayed.map((x, i) => <li key={i}><RenderValue value={x} /></li>)}
+                </ul>
+            </div>
+        </div>
         <pre>
-            {JSON.stringify(annotated, null, 2)}
+            {JSON.stringify(annotated, undefined, 2)}
         </pre>
-        <dl>
-            {Array.from(variables.entries(), ([name, value]) =>
-                !(value.type === "procedure" && value.builtin) && <>
-                    <dt key={name + "_key"}>{name}</dt>
-                    <dd key={name + "_value"}><RenderValue value={value} /></dd>
-                </>
-            )}
-        </dl>
-        <ul>
-            {displayed.map((x, i) => <li key={i}><RenderValue value={x} /></li>)}
-        </ul>
     </div>)
 }

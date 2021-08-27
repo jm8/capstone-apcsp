@@ -28,7 +28,7 @@ export class Cancel extends Error {
 
 type InterpreterCallbacks = {
     onDisplay(x: Value): Promise<void>
-    onInput(): Promise<string>
+    onWaitForInput(): Promise<string>
     onStepPause(): Promise<void>
     onInfo(annotatedAst: Statement<Annotations>[], variables: Map<string, Value>): void
 }
@@ -67,7 +67,8 @@ export class Interpreter {
                 if (params.length !== 0) {
                     this.error(ast, "INPUT takes no arguments");
                 }
-                const inputString = await this.callbacks.onInput();
+                const inputString = await this.callbacks.onWaitForInput();
+                await this.maybeCancel();
                 const num = Number(inputString);
                 if (isNaN(num)) {
                     return { type: "string", value: inputString }
@@ -88,7 +89,6 @@ export class Interpreter {
                     this.error(ast.paramaters[0], "must be a list");
                 }
                 params[0].value.push(params[1]);
-                console.log("Pushed ", params[1], " to", params[0])
 
                 return { type: "void" };
             })

@@ -365,8 +365,8 @@ export class Interpreter {
             }
             return { type: "list", value }
         } else if (ast.type === "negate") {
-            const num = this.expectType(ast.value, "number");
-            return { type: "number", value: -num };
+            const num = await this.expectType(ast.value, "number");
+            return { type: "number", value: -num.value };
         } else if (ast.type === "variable") {
             const value = this.globals.get(ast.name);
             if (value === undefined) {

@@ -3,11 +3,13 @@ import React from "react";
 import { useState } from "react";
 import { CodeBlock } from "./CodeBlock";
 import { Statement } from "./language/ast";
-import { Annotations, Cancel, Interpreter, RuntimeError, Value } from "./language/run";
+import { Annotations, Cancel, Interpreter, RuntimeError, Value, VariableInfo } from "./language/run";
 import RenderValue from "./RenderValue";
 import "./Running.css"
 import Variables from "./Variables";
 import { Console, ConsoleLine } from "./Console";
+
+
 
 export default function Running({ code, asts: unAnnotated, onClose }:
     { code: string, asts: Statement[], onClose: () => void }) {
@@ -17,7 +19,7 @@ export default function Running({ code, asts: unAnnotated, onClose }:
     const [interpreter, setInterpreter] = useState<Interpreter | null>(null);
     const [annotated, setAnnotated] = useState<Statement<Annotations>[]>(unAnnotated);
     const [nextStep, setNextStep] = useState<(() => void) | null>(null);
-    const [variables, setVariables] = useState<Map<string, Value>>(new Map());
+    const [variables, setVariables] = useState<VariableInfo>({ globals: new Map(), locals: null });
     type OnInput = ((x: string) => void) | null;
     const [onInput, setOnInput] = useState<OnInput>(null);
 
@@ -45,7 +47,7 @@ export default function Running({ code, asts: unAnnotated, onClose }:
                     })
                 })
             },
-            onInfo(annotated: Statement<Annotations>[], variables: Map<string, Value>) {
+            onInfo(annotated: Statement<Annotations>[], variables: VariableInfo) {
                 setAnnotated(annotated);
                 setVariables(variables);
             },

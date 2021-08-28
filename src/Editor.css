@@ -29,3 +29,7 @@
     flex: 1;
     margin: 1em;
 }
+
+.Editor #ace-editor {
+    height: 100%;
+}

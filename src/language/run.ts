@@ -8,6 +8,7 @@ export type Value =
     | { type: "boolean", value: boolean }
     | { type: "list", value: Value[] }
     | { type: "procedure", builtin: true, call(ast: Ast<Annotations> & { type: "call" }, params: Value[]): Promise<Value> }
+    | { type: "procedure", builtin: false, ast: Ast<Annotations> & { type: "procedure" } }
     | { type: "void" }
 
 export type Annotations = { evaluated?: Value, isRunning?: boolean, error?: string }
@@ -26,15 +27,25 @@ export class Cancel extends Error {
     }
 }
 
+export class ReturnException {
+    ast: Ast<Annotations> & { type: "return" | "returnvoid" };
+    constructor(ast: Ast<Annotations> & { type: "return" | "returnvoid" }) {
+        this.ast = ast;
+    }
+}
+
 type InterpreterCallbacks = {
     onDisplay(x: Value): Promise<void>
     onWaitForInput(): Promise<string>
     onStepPause(): Promise<void>
-    onInfo(annotatedAst: Statement<Annotations>[], variables: Map<string, Value>): void
+    onInfo(annotatedAst: Statement<Annotations>[], variables: VariableInfo): void
 }
+
+export type VariableInfo = { globals: Map<string, Value>, locals: Map<string, Value> | null };
 
 export class Interpreter {
     globals: Map<string, Value>;
+    locals: Map<string, Value> | null;
     callbacks: InterpreterCallbacks;
     shouldCancelReal: boolean = false;
     set shouldCancel(newValue: boolean) {
@@ -47,6 +58,7 @@ export class Interpreter {
     constructor(callbacks: InterpreterCallbacks) {
         this.callbacks = callbacks;
         this.globals = new Map();
+        this.locals = null;
 
         this.globals.set("DISPLAY", {
             type: "procedure",
@@ -181,9 +193,36 @@ export class Interpreter {
         })
     }
 
+
+    async assign(ast: AssignableExpression<Annotations>, value: Value) {
+        if (ast.type === "variable") {
+            if (!this.locals || this.globals.has(ast.name)) {
+                this.globals.set(ast.name, value);
+            } else {
+                this.locals.set(ast.name, value);
+            }
+        } else {
+            const index = (await this.expectType(ast.index, "number")).value;
+
+            const list = (await this.expectType(ast.list, "list")).value;
+
+            if (!Number.isInteger(index)) this.error(ast.index, "must be an integer");
+            if (index <= 0) this.error(ast.index, "must be >= 1");
+            if (index > list.length) this.error(ast, "index bigger than list length");
+
+            list[index - 1] = value;
+        }
+    }
+
     interpret(asts: Statement<Annotations>[]) {
         this.annotatedAst = cloneDeep(asts);
-        return this.runBlock(this.annotatedAst);
+        return this.runBlock(this.annotatedAst).catch(x => {
+            if (x instanceof ReturnException) {
+                this.error(x.ast, "cannot return outside procedure");
+            } else {
+                throw x;
+            }
+        });
     }
 
     async maybeCancel(): Promise<void> {
@@ -194,14 +233,17 @@ export class Interpreter {
     }
 
     broadcastInfo() {
-        this.callbacks.onInfo(cloneDeep(this.annotatedAst), cloneDeep(this.globals));
+        this.callbacks.onInfo(cloneDeep(this.annotatedAst), {
+            globals: cloneDeep(this.globals),
+            locals: cloneDeep(this.locals),
+        });
     }
 
-    async step(expr: Ast<Annotations>): Promise<void> {
-        expr.isRunning = true;
+    async step(ast: Ast<Annotations>): Promise<void> {
+        ast.isRunning = true;
         this.broadcastInfo();
-        if (this.shouldStep) await this.callbacks.onStepPause();
-        expr.isRunning = false;
+        if (ast.type !== "procedure" && this.shouldStep) await this.callbacks.onStepPause();
+        ast.isRunning = false;
     }
 
     error(expr: Ast<Annotations>, message: string): never {
@@ -226,22 +268,6 @@ export class Interpreter {
             await this.run(stat);
         }
         this.broadcastInfo();
-    }
-
-    async assign(ast: AssignableExpression<Annotations>, value: Value) {
-        if (ast.type === "variable") {
-            this.globals.set(ast.name, cloneDeep(value));
-        } else {
-            const index = (await this.expectType(ast.index, "number")).value;
-
-            const list = (await this.expectType(ast.list, "list")).value;
-
-            if (!Number.isInteger(index)) this.error(ast.index, "must be an integer");
-            if (index <= 0) this.error(ast.index, "must be >= 1");
-            if (index > list.length) this.error(ast, "index bigger than list length");
-
-            list[index - 1] = value;
-        }
     }
 
     async run(ast: Statement<Annotations>): Promise<void> {
@@ -272,7 +298,11 @@ export class Interpreter {
                 await this.runBlock(ast.block);
             }
         } else if (ast.type === "procedure") {
-            this.error(ast, "can't handle this");
+            await this.assign({ type: "variable", name: ast.name }, {
+                type: "procedure",
+                builtin: false,
+                ast
+            });
         } else if (ast.type === "repeattimes") {
             const n = (await this.expectType(ast.times, "number")).value;
             if (!Number.isInteger(n)) this.error(ast.times, "must be an integer");
@@ -297,9 +327,9 @@ export class Interpreter {
             this.shouldStep = true;
             await this.step(ast);
         } else if (ast.type === "return") {
-            this.error(ast, "can't handle this");
+            throw new ReturnException(ast);
         } else if (ast.type === "returnvoid") {
-            this.error(ast, "can't handle this");
+            throw new ReturnException(ast);
         }
     }
 
@@ -368,7 +398,7 @@ export class Interpreter {
             const num = await this.expectType(ast.value, "number");
             return { type: "number", value: -num.value };
         } else if (ast.type === "variable") {
-            const value = this.globals.get(ast.name);
+            const value = this.locals?.get(ast.name) ?? this.globals.get(ast.name);
             if (value === undefined) {
                 this.error(ast, "unknown name");
             }
@@ -380,8 +410,37 @@ export class Interpreter {
                 paramaters.push(await this.evaluate(item));
             }
             // we need to pass the ast so it can set 'error' flag
-            return await procedure.call(ast, paramaters);
+            if (procedure.builtin) {
+                return await procedure.call(ast, paramaters);
+            } else {
+                const nparams = procedure.ast.paramaters.length;
+
+                const oldLocals = this.locals;
+                this.locals = new Map();
+                if (paramaters.length !== nparams) {
+                    this.error(ast, `should have ${nparams} paramaters`);
+                }
+                for (let i = 0; i < nparams; i++) {
+                    this.locals.set(procedure.ast.paramaters[i], paramaters[i]);
+                }
+                try {
+                    await this.runBlock(procedure.ast.block);
+                } catch (e) {
+                    if (e instanceof ReturnException) {
+                        if (e.ast.type === "returnvoid") {
+                            return { type: "void" }
+                        } else {
+                            return await this.evaluate(e.ast.value);
+                        }
+                    } else {
+                        throw e;
+                    }
+                } finally {
+                    this.locals = oldLocals;
+                }
+                return { type: "void" }
+            }
         }
-        this.error(ast, "can't handle this");
+        this.error(ast, `can't handle ${ast.type}`);
     }
 }

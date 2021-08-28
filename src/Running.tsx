@@ -7,17 +7,25 @@ import { Annotations, Cancel, Interpreter, RuntimeError, Value } from "./languag
 import RenderValue from "./RenderValue";
 import "./Running.css"
 import Variables from "./Variables";
+import { Console, ConsoleLine } from "./Console";
 
 export default function Running({ code, asts: unAnnotated, onClose }:
     { code: string, asts: Statement[], onClose: () => void }) {
 
-    const [displayed, setDisplayed] = useState<Value[]>([]);
+
+    const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([]);
     const [interpreter, setInterpreter] = useState<Interpreter | null>(null);
     const [annotated, setAnnotated] = useState<Statement<Annotations>[]>(unAnnotated);
     const [nextStep, setNextStep] = useState<(() => void) | null>(null);
     const [variables, setVariables] = useState<Map<string, Value>>(new Map());
+    type OnInput = ((x: string) => void) | null;
+    const [onInput, setOnInput] = useState<OnInput>(null);
 
     const cancel = (interpreter: Interpreter | null) => {
+        if (onInput) {
+            onInput("")
+            setOnInput(null);
+        }
         if (interpreter) interpreter.shouldCancel = true;
         setNextStep(null);
         setInterpreter(null);
@@ -25,12 +33,16 @@ export default function Running({ code, asts: unAnnotated, onClose }:
     }
 
     const onRun = (shouldStep: boolean) => {
-        setDisplayed([]);
+        setConsoleLines([]);
         const newInterpreter = new Interpreter({
-            async onDisplay(x: Value) { setDisplayed(displayed => [...displayed, x]) },
-            onInput() {
-                return new Promise(resolve => {
-                    resolve(prompt("Input") ?? "");
+            async onDisplay(x: Value) { setConsoleLines(old => [...old, { type: "display", value: x }]) },
+            onWaitForInput() {
+                return new Promise<string>(resolve => {
+                    setOnInput((oldOnInput: OnInput) => (x: string) => {
+                        setConsoleLines(old => [...old, { type: "input", value: x }]);
+                        setOnInput(null);
+                        resolve(x);
+                    })
                 })
             },
             onInfo(annotated: Statement<Annotations>[], variables: Map<string, Value>) {
@@ -63,22 +75,14 @@ export default function Running({ code, asts: unAnnotated, onClose }:
             {!interpreter && <button onClick={e => onRun(false)}>Run</button>}
             {!interpreter && <button onClick={e => onRun(true)}>Step through</button>}
             {interpreter && <button onClick={e => { cancel(interpreter) }}>Stop</button>}
-            {nextStep && interpreter && <button onClick={e => { interpreter.shouldStep = false; nextStep() }}>Continue</button>}
-            {nextStep && <button onClick={e => nextStep()}>Step</button>}
+            {nextStep && !onInput && interpreter && <>
+                <button onClick={e => { interpreter.shouldStep = false; nextStep() }}>Continue</button>
+                <button onClick={e => nextStep()}>Step</button>
+            </>}
         </div>
-        <div className="content">
-            <div className="left">
-                <CodeBlock asts={annotated} />
-            </div>
-            <div className="right">
-                <Variables variables={variables} />
-                <ul className="displayed">
-                    {displayed.map((x, i) => <li key={i}><RenderValue value={x} /></li>)}
-                </ul>
-            </div>
-        </div>
-        <pre>
-            {JSON.stringify(annotated, undefined, 2)}
-        </pre>
+        <CodeBlock asts={annotated} />
+        <Variables variables={variables} />
+        <Console displayed={consoleLines} onInput={onInput} />
+
     </div>)
 }

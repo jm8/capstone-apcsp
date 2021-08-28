@@ -1,33 +1,28 @@
 .Running {
-    height: 100%;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: min-content 1fr 1fr;
+    gap: 0px 0px;
+    grid-template-areas: "toolbar toolbar" "codeblock variables" "codeblock console";
 }
 
 .Running .CodeBlock {
     margin: 1em;
+    grid-area: codeblock;
 }
 
-.Running .content {
-    flex: 1;
-    display: flex;
-    flex-direction: row;
+.Running .toolbar {
+    grid-area: toolbar;
 }
 
-.Running .left {
-    flex: 1;
-}
-
-.Running .right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+.Running .Console, .Running .Variables {
     font-family: 'Courier New', Courier, monospace;
 }
 
-.Variables {
-    display: flex;
-    flex-direction: column;
+.Running .Variables {
+    grid-area: variables;
 }
 
+.Running .Console {
+    grid-area: console;
+}

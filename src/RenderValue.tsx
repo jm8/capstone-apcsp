@@ -1,7 +1,7 @@
 import React from "react";
 import { Value } from "./language/run";
 
-function valueToString(value: Value): string {
+function valueToString(value: Value, hideQuotes: boolean = false): string {
     if (value.type === "void") {
         return "[void]"
     } else if (value.type === "procedure") {
@@ -17,12 +17,13 @@ function valueToString(value: Value): string {
         res += "]";
         return res;
     } else if (value.type === "string") {
+        if (hideQuotes) return value.value;
         return JSON.stringify(value.value)
     } else {
         return value.value.toString();
     }
 }
 
-export default function RenderValue({ value }: { value: Value }) {
-    return <span>{valueToString(value)}</span>
+export default function RenderValue({ value, hideQuotes = true }: { hideQuotes?: boolean, value: Value }) {
+    return <span>{valueToString(value, hideQuotes)}</span>
 }

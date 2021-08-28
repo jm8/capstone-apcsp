@@ -4,6 +4,7 @@ import RenderValue from "./RenderValue";
 
 export default function Variables({ variables }: { variables: Map<string, Value> }) {
     return <div className="Variables">
+        <h2>Variables</h2>
         {Array.from(variables.entries(), ([name, value]) =>
             !(value.type === "procedure" && value.builtin) && <div className="variable">
                 <span className="variableName" key={name + "_key"}>{name}: </span>

@@ -1,0 +1,21 @@
+.Console {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.Console .displayed {
+    list-style: none;
+    padding-left: 0;
+    flex: 1;
+    overflow: auto;
+}
+
+.Console .inputcontainer {
+    display: flex;
+    flex-direction: row;
+}
+
+.Console .inputbox {
+    flex: 1;
+}
